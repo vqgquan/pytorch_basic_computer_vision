@@ -2,7 +2,7 @@ from typing import Annotated
 import torch
 import torchvision.transforms as transforms
 from fastapi import FastAPI, File, UploadFile
-
+from PIL import Image
 
 
 model = torch.load("model.pth")
@@ -21,6 +21,22 @@ async def create_file(file: Annotated[bytes, File()]):
     return {"file_size": len(file)}
 
 
+@app.post("/files/")
+async def create_file(file: Annotated[bytes, File()]):
+    return {"file_size": len(file)}
+
 @app.post("/uploadfile/")
 async def create_upload_file(file: UploadFile):
-    return {"filename": file.filename}
+    # Save the uploaded file temporarily
+    image_path = f"temp_{file.filename}"
+    with open(image_path, "wb") as buffer:
+        buffer.write(await file.read())
+
+    # Run inference
+    image = Image.open(image_path)
+    image = transform(image).unsqueeze(0)  # Add batch dimension
+
+    output = model(image)
+    _, predicted = torch.max(output, 1)
+    
+    return {"filename": file.filename, "prediction": predicted.item()}
