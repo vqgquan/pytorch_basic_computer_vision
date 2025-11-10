@@ -3,9 +3,10 @@ import torch
 import torchvision.transforms as transforms
 from fastapi import FastAPI, File, UploadFile
 from PIL import Image
+from app.model import FashionClassifier
 
-
-model = torch.load("model.pth")
+model = FashionClassifier()
+model.load_state_dict(torch.load("app/model.pth"))
 model.eval()
 
 transform = transforms.Compose([
@@ -16,16 +17,16 @@ transform = transforms.Compose([
 
 app = FastAPI()
 
-@app.post("/files/")
+@app.get("/")
+def read_root():
+    return {"message":"AlexNet based model"}
+
+
+@app.post("/create-files/")
 async def create_file(file: Annotated[bytes, File()]):
     return {"file_size": len(file)}
 
-
-@app.post("/files/")
-async def create_file(file: Annotated[bytes, File()]):
-    return {"file_size": len(file)}
-
-@app.post("/uploadfile/")
+@app.post("/upload-file/")
 async def create_upload_file(file: UploadFile):
     # Save the uploaded file temporarily
     image_path = f"temp_{file.filename}"
